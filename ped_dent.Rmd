@@ -1,36 +1,106 @@
 ---
-title: "Pediatric dentist"
-output: html_notebook
+title: "Pediatric denstists"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: 
+  html_document: 
+    code_folding: hide
+    toc: yes
+    number_sections: true
+    toc_depth: 3
+    toc_float: true
 ---
 
-```{r setup, include=FALSE}
-
-knitr::opts_chunk$set(
-    comment = "",
-    echo = F,
-    fig.width = 12, 
-    fig.height = 10,
-    message = FALSE,
-    warning = FALSE,
-    comment = NA,
-    tidy.opts = list(
-        keep.blank.line = TRUE,
-        width.cutoff = 150
-        ),
-    options(width = 150),
-    eval = TRUE
-)
-
-#this chunk is used to silence code, warnings, comments and hash from appearing in output
-
-
+```{r global options, include = FALSE}
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
 ```
+
+# Table 1 Participants' demographics
 
 ```{r}
 library(tidyverse)
 library(gtsummary)
 library(janitor)
+library(readxl)
+
+data <- read_excel("Pediatric dentists.xlsx")
+
+names(data) <- make.names(names(data), unique = T)
+
+rmdtbl <- function(df){
+  
+tbl_alpha <- autofit(theme_vanilla(flextable(df)))
+
+tbl_alpha <- bg(tbl_alpha, bg = "blue", part = "header")
+tbl_alpha <- color(tbl_alpha, color = "white", part = "header")
+
+bes <- align(tbl_alpha, align = "center")
+
+bes <- align_text_col(bes, align = "center")
+return(bes)
+
+}
 
 
 ```
+
+```{r}
+
+data$Degree <- fct_collapse(data$Highest.degree.attained, 
+                            Bachelor = c("Bachelor", "Bachelor degree"), 
+                            "1st or 2nd year Master student" = c("Pediatric Rezident Student", "1st or 2nd year Master student" ), 
+                            MSc = c("Master's degree (MSc)", "Mds"))%>% 
+  fct_lump_min(5)
+
+data$Degree[data$Degree == "Other"] <- NA
+
+data$Degree <- data$Degree %>% 
+  fct_drop()
+
+country <- data %>% 
+  select(count = Country.of.Practice...Multiple.responses.enabled.) %>%
+  separate(count, c("Country_of_practice", "B", "C"))
+
+
+data <- data %>%
+  mutate(country = country$Country_of_practice) %>% 
+  filter(country == "Egypt", !is.na(Degree)) %>% 
+  mutate(country = ifelse(Country.of.Practice...Multiple.responses.enabled. == "Egypt", "Egypt only", "Egypt and others"))
+
+data$country <- fct_lump_min(data$country, 3)
+
+# table(data$Highest.degree.attained)
+# 
+# sum(str_count(data$Country.of.Practice...Multiple.responses.enabled., "Egypt"))
+# 
+# sum(data$Country.of.Practice...Multiple.responses.enabled. == "Egypt")
+
+```
+
+
+
+```{r}
+tbl1_sum <- data %>% 
+  dplyr::select(Gender, Degree, Years.of.experience.in.pediatric.dentistry, country)
+
+
+tbl_summary(tbl1_sum, missing = "no")  %>% add_n %>% bold_labels() %>% italicize_levels() %>% gtsummary::as_flextable() 
+
+```
+
+# Table 2
+
+```{r}
+data$What.guidelines.do.you.follow.for.prevention.of.infective.endocarditis...If.you.chose..other...please.specify.. <- fct_collapse(data$What.guidelines.do.you.follow.for.prevention.of.infective.endocarditis...If.you.chose..other...please.specify..,
+"American Heart Association (AHA)" = c("American Heart Association (AHA)", "AAPD"),     
+"National Institute for Health and Care Excellence (NICE)" = c("National Institute for Health and Care Excellence (NICE)", "AAPD and NICE"))
+
+tbl2_sum <- data %>% 
+  dplyr::select(How.regularly.do.you.encounter.a.child.with.Congenital..Rheumatic.Heart.Disease.in.your.practice., What.guidelines.do.you.follow.for.prevention.of.infective.endocarditis...If.you.chose..other...please.specify.., Do.you.refer.a.child.with.congenital.acquired.heart.disease.to.pediatric.cardiologists.for.consultation.before.dental.treatment., If.a.prophylactic.antibiotic.is.needed..who.prescribes..it., How.do.you.consider.a.child.as.having.a.risk.for.infective.endocarditis., Have.you.ever.been.involved.in.oral.health.education.for.children.with.Congenital.Acquired.Heart.Diseases.., Have.you.ever.been.involved.in.oral.health.education.for.Pediatric.Cardiologists.)
+
+
+tbl_summary(tbl2_sum, missing = "no")  %>% add_n %>% bold_labels() %>% italicize_levels() %>% gtsummary::as_flextable() 
+
+```
+
+
 

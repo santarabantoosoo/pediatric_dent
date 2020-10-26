@@ -1,0 +1,36 @@
+---
+title: "Pediatric dentist"
+output: html_notebook
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(
+    comment = "",
+    echo = F,
+    fig.width = 12, 
+    fig.height = 10,
+    message = FALSE,
+    warning = FALSE,
+    comment = NA,
+    tidy.opts = list(
+        keep.blank.line = TRUE,
+        width.cutoff = 150
+        ),
+    options(width = 150),
+    eval = TRUE
+)
+
+#this chunk is used to silence code, warnings, comments and hash from appearing in output
+
+
+```
+
+```{r}
+library(tidyverse)
+library(gtsummary)
+library(janitor)
+
+
+```
+

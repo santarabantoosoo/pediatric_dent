@@ -1,26 +1,25 @@
 ---
 title: "Pediatric denstists"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
-output: 
-  html_document: 
-    code_folding: hide
-    toc: yes
-    number_sections: true
-    toc_depth: 3
-    toc_float: true
+output: word_document
 ---
 
 ```{r global options, include = FALSE}
-knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, comment = NA, fig.height = 15, fig.width = 15)
 ```
 
 # Table 1 Participants' demographics
+
+Imp notes : 
+
+Gender distribution is greatly shifted towards females 
 
 ```{r}
 library(tidyverse)
 library(gtsummary)
 library(janitor)
 library(readxl)
+library(labelled)
 
 data <- read_excel("Pediatric dentists.xlsx")
 
@@ -40,10 +39,10 @@ return(bes)
 
 }
 
-
 ```
 
-```{r}
+
+```{r warning=FALSE}
 
 data$Degree <- fct_collapse(data$Highest.degree.attained, 
                             Bachelor = c("Bachelor", "Bachelor degree"), 
@@ -61,6 +60,24 @@ country <- data %>%
   separate(count, c("Country_of_practice", "B", "C"))
 
 
+data$guideline <- as.factor(data$What.guidelines.do.you.follow.for.prevention.of.infective.endocarditis...If.you.chose..other...please.specify..)
+
+data$guideline <- fct_collapse(data$guideline,
+"AHA" = c("American Heart Association (AHA)", "AAPD"),     
+"NICE" = c("National Institute for Health and Care Excellence (NICE)", "AAPD and NICE"),
+"ESC" = "European Society of Cardiology (ESC)",
+"Not sure" = "I am not sure")
+
+# table(data$guideline)
+# data$guideline <- 
+#   fct_collapse(data$guideline,
+#                "AHA" = "American Heart Association (AHA)",
+#                "NICE" = "National Institute for Health and Care Excellence (NICE)",
+#                "ESC" = "European Society of Cardiology (ESC)",
+#                "Not sure" = "I am not sure")
+# 
+# data$guideline <- fct_drop(data$guideline)
+
 data <- data %>%
   mutate(country = country$Country_of_practice) %>% 
   filter(country == "Egypt", !is.na(Degree)) %>% 
@@ -74,8 +91,17 @@ data$country <- fct_lump_min(data$country, 3)
 # 
 # sum(data$Country.of.Practice...Multiple.responses.enabled. == "Egypt")
 
+
 ```
 
+```{r labelling}
+
+var_label(data) <- list(
+  Have.you.ever.been.involved.in.oral.health.education.for.children.with.Congenital.Acquired.Heart.Diseases.. = "Pediatric denstists involved in oral health education for children with heart diseases",
+  Have.you.ever.been.involved.in.oral.health.education.for.Pediatric.Cardiologists. = "Pediatric denstists involved in oral health education of pediatric cardiologists"
+  )
+
+```
 
 
 ```{r}
@@ -90,12 +116,9 @@ tbl_summary(tbl1_sum, missing = "no")  %>% add_n %>% bold_labels() %>% italicize
 # Table 2
 
 ```{r}
-data$What.guidelines.do.you.follow.for.prevention.of.infective.endocarditis...If.you.chose..other...please.specify.. <- fct_collapse(data$What.guidelines.do.you.follow.for.prevention.of.infective.endocarditis...If.you.chose..other...please.specify..,
-"American Heart Association (AHA)" = c("American Heart Association (AHA)", "AAPD"),     
-"National Institute for Health and Care Excellence (NICE)" = c("National Institute for Health and Care Excellence (NICE)", "AAPD and NICE"))
 
 tbl2_sum <- data %>% 
-  dplyr::select(How.regularly.do.you.encounter.a.child.with.Congenital..Rheumatic.Heart.Disease.in.your.practice., What.guidelines.do.you.follow.for.prevention.of.infective.endocarditis...If.you.chose..other...please.specify.., Do.you.refer.a.child.with.congenital.acquired.heart.disease.to.pediatric.cardiologists.for.consultation.before.dental.treatment., If.a.prophylactic.antibiotic.is.needed..who.prescribes..it., How.do.you.consider.a.child.as.having.a.risk.for.infective.endocarditis., Have.you.ever.been.involved.in.oral.health.education.for.children.with.Congenital.Acquired.Heart.Diseases.., Have.you.ever.been.involved.in.oral.health.education.for.Pediatric.Cardiologists.)
+  dplyr::select(How.regularly.do.you.encounter.a.child.with.Congenital..Rheumatic.Heart.Disease.in.your.practice., guideline, Do.you.refer.a.child.with.congenital.acquired.heart.disease.to.pediatric.cardiologists.for.consultation.before.dental.treatment., If.a.prophylactic.antibiotic.is.needed..who.prescribes..it., How.do.you.consider.a.child.as.having.a.risk.for.infective.endocarditis., Have.you.ever.been.involved.in.oral.health.education.for.children.with.Congenital.Acquired.Heart.Diseases.., Have.you.ever.been.involved.in.oral.health.education.for.Pediatric.Cardiologists.)
 
 
 tbl_summary(tbl2_sum, missing = "no")  %>% add_n %>% bold_labels() %>% italicize_levels() %>% gtsummary::as_flextable() 
@@ -103,4 +126,194 @@ tbl_summary(tbl2_sum, missing = "no")  %>% add_n %>% bold_labels() %>% italicize
 ```
 
 
+# cause of infective endocarditis 
+
+```{r}
+data$ie_cause <- data$According.to.your.knowledge..infective.endocarditis.of.oral.origin.can.be.caused.by...Multiple.responses.enabled.
+
+ging <- sum(str_count(data$ie_cause, "A gingival abscess related to a decayed tooth."), str_count(data$ie_cause, "Periapical abcess"))
+
+other_causes <- sum(
+  str_count(data$ie_cause, "Chewing"),
+  str_count(data$ie_cause, "Root canal treatment"),
+  str_count(data$ie_cause, "Intraligament injection is C/I")
+)
+
+brush <- sum(str_count(data$ie_cause, "Tooth brushing."))
+
+caries <- sum(str_count(data$ie_cause, "A tooth with deep caries."))
+
+invs <- sum(str_count(data$ie_cause, "Invasive dental procedures"))
+
+noninv <- sum(str_count(data$ie_cause, "Non invasive dental procedures"))
+
+
+iecause <- data.frame(cause = c(rep("gingival abscess related to a decayed tooth", ging), rep("Other causes", other_causes), rep("Tooth brushing", brush), rep("A tooth with deep caries", caries), rep("Invasive dental procedures", invs), rep("Non invasive dental procedures", noninv)))
+
+iecause %>% 
+  ggplot(aes(x = forcats::fct_infreq(cause)))+
+  geom_bar(stat = "count", fill = "steelblue") +
+  coord_flip()+
+  labs(x = "Cause", title = "Infective endocarditis causes")+
+  theme_minimal()+
+  scale_y_continuous(n.breaks = 15)+
+      theme(text = element_text(size=23))
+
+
+```
+
+Other causes included 4 dentists who have choosen chewing and 2 dentists who have chosen root canal treatment and 1 intraligament injection. 
+
+
+### Safe procedures 
+
+```{r}
+
+# data$safe_proced <- fct_lump_min(data$In.your.opinion..which.of.the.following.procedures.is.safe.to.be.performed.in.children.at.risk.of.Infective.Endocarditis...Multiple.responses.enabled.., 10)
+# 
+# safe <- data %>% 
+#   select(count = In.your.opinion..which.of.the.following.procedures.is.safe.to.be.performed.in.children.at.risk.of.Infective.Endocarditis...Multiple.responses.enabled..) %>%
+#   separate(count, c("A", "B", "C","D"), sep = ",")
+
+vp_perm <- sum(str_count(data$In.your.opinion..which.of.the.following.procedures.is.safe.to.be.performed.in.children.at.risk.of.Infective.Endocarditis...Multiple.responses.enabled.., "Treatment of vital pulp exposures in permanent teeth."))
+
+vp_pri <- sum(str_count(data$In.your.opinion..which.of.the.following.procedures.is.safe.to.be.performed.in.children.at.risk.of.Infective.Endocarditis...Multiple.responses.enabled.., "Treatment of vital pulp exposures in primary teeth."))
+
+
+non <- sum(str_count(data$In.your.opinion..which.of.the.following.procedures.is.safe.to.be.performed.in.children.at.risk.of.Infective.Endocarditis...Multiple.responses.enabled.., "None of the above"))
+
+
+nvp_pri <- sum(str_count(data$In.your.opinion..which.of.the.following.procedures.is.safe.to.be.performed.in.children.at.risk.of.Infective.Endocarditis...Multiple.responses.enabled.., "Non-Vital pulp therapy in primary teeth."))
+
+
+nvp_per <- sum(str_count(data$In.your.opinion..which.of.the.following.procedures.is.safe.to.be.performed.in.children.at.risk.of.Infective.Endocarditis...Multiple.responses.enabled.., "Non-vital pulp therapy in permanent teeth."))
+
+extraction <- sum(str_count(tolower(data$In.your.opinion..which.of.the.following.procedures.is.safe.to.be.performed.in.children.at.risk.of.Infective.Endocarditis...Multiple.responses.enabled..), "extrac"))
+
+safe_procedures <- data.frame(procedure = c(rep("Treatment of vital pulp exposures in permanent teeth.", vp_perm), rep("Treatment of vital pulp exposures in primary teeth.", vp_pri), rep("None of the above", non), rep("Non-Vital pulp therapy in primary teeth.", nvp_pri), rep("Non-vital pulp therapy in permanent teeth.", nvp_per), rep("Extraction of pulpally involved teeth", extraction)))
+
+safe_procedures %>% 
+  ggplot(aes(x = forcats::fct_infreq(procedure)))+
+  geom_bar(stat = "count", fill = "steelblue") +
+  coord_flip()+
+  labs(x = "Procedure", title = "Safe procedures")+
+  theme_minimal()+
+  scale_y_continuous(n.breaks = 10)+
+      theme(text = element_text(size=23))
+
+
+```
+
+N.B.
+In others, I have taken only responses that included the word extraction and grouped them into extraction of pulpally involved teeth
+
+
+
+### Antibiotics 
+
+```{r}
+
+all_hrt <- sum(str_count(data$Whom.of.the.following.do.you.think..require.s..antibiotic.prophylaxis.before.invasive.dental.procedures...Multiple.responses.enabled.., "All children with congenital heart diseases ."))
+
+chd <- sum(str_count(data$Whom.of.the.following.do.you.think..require.s..antibiotic.prophylaxis.before.invasive.dental.procedures...Multiple.responses.enabled.., "Children having certain types of congenital heart diseases."))
+
+fever <- sum(str_count(data$Whom.of.the.following.do.you.think..require.s..antibiotic.prophylaxis.before.invasive.dental.procedures...Multiple.responses.enabled.., "Children with rheumatic fever WITHOUT rheumatic heart disease."))
+
+rhd <- sum(str_count(data$Whom.of.the.following.do.you.think..require.s..antibiotic.prophylaxis.before.invasive.dental.procedures...Multiple.responses.enabled.., "Children WITH rheumatic heart disease."))
+
+idk <- sum(str_count(data$Whom.of.the.following.do.you.think..require.s..antibiotic.prophylaxis.before.invasive.dental.procedures...Multiple.responses.enabled.., "I do not know."))
+
+others <- 4
+
+Antibiotics <- data.frame(ant = c(rep("All children with congenital heart diseases", all_hrt), rep("Children having certain types of congenital heart diseases", chd), rep("Children with rheumatic fever WITHOUT rheumatic heart disease", fever), rep("Children WITH rheumatic heart disease", rhd), rep("I do not know.", idk), rep("Others", others)))
+library(forcats)
+
+
+Antibiotics %>% 
+  ggplot(aes(x = forcats::fct_infreq(ant)))+
+  geom_bar(stat = "count", fill = "steelblue") +
+  coord_flip()+
+  labs(x = "Condition", title = "Requiring antibiotics")+
+  theme_minimal()+
+  scale_y_continuous(n.breaks = 10)+
+      theme(text = element_text(size=23))
+
+
+# 1 Children with partially repaires , unrepaired and that repaired with prithetic materials
+# 
+# 1 prothetic valves, preivous infective endocarditis and valvulpathy 
+# 
+# 1 Previous risk of infective endocarditis , prosthetic valve 
+# 
+# 1 Prothetic valve,previous history of infective endicarditis 
+
+```
+
+Others include three dentists choosing "previous risk of infective endocarditis or prosthetic valve" and one who has chosen "partially repaires , unrepaired and that repaired with prithetic materials
+
+### Guideline adopted grouped by years of experience
+
+```{r}
+library(webr)
+
+guideline_experience <- data.frame(table(data$Years.of.experience.in.pediatric.dentistry, data$guideline))
+
+guideline_experience <- guideline_experience %>% 
+  group_by(Var1) %>% 
+  mutate(Percentage = (Freq/sum(Freq)*100)) %>% 
+  filter(Var2 != "AAPD Guidline")
+
+ggplot(guideline_experience, aes(x = Var1, y = Percentage, fill = Var2))+
+  geom_col(position = "dodge")+
+  labs(x = "Years of experience", y = "Frequency", title = "Guideline adopted grouped by years of experience", fill = "Guideline")+
+  theme_minimal()+
+      theme(text = element_text(size=23))
+
+```
+
+### Guideline adopted grouped by highest degree
+
+```{r}
+
+levels(data$Degree) <- c("Master student", "Diploma", "PhD", "MSc")
+
+guideline_degree <- data.frame(table(data$Degree, data$guideline))
+
+guideline_degree <- guideline_degree %>% 
+  group_by(Var1) %>% 
+  mutate(Percentage = (Freq/sum(Freq)*100)) %>% 
+  filter(Var2 != "AAPD Guidline")
+
+
+ggplot(guideline_degree, aes(x = Var1, y = Percentage, fill = Var2))+
+  geom_col(position = "dodge")+
+  labs(x = "Highest degree", y = "Percentage", title = "Guideline adopted grouped by highest degree", fill = "Guideline")+
+  theme_minimal()+
+    theme(text = element_text(size=23))
+
+```
+
+### Referal by years of experience 
+
+```{r}
+
+data$refer <- as.factor(data$Do.you.refer.a.child.with.congenital.acquired.heart.disease.to.pediatric.cardiologists.for.consultation.before.dental.treatment.
+)
+
+levels(data$refer) <- c("No", "All children", "Only at risk")
+
+years_refer <- data.frame(table(data$Years.of.experience.in.pediatric.dentistry, data$refer))
+
+years_refer <- years_refer %>% 
+  group_by(Var1) %>% 
+  mutate(Percentage = (Freq/sum(Freq)*100))
+
+
+ggplot(years_refer, aes(x = Var1, y = Percentage, fill = Var2))+
+  geom_col(position = "dodge")+
+  labs(x = "Years of experience", y = "Percentage", title = "Referal grouped by years of-- experience", fill = "Referal")+
+  theme_minimal()+
+      theme(text = element_text(size=23))
+
+```
 

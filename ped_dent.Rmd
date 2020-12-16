@@ -46,13 +46,6 @@ return(bes)
 ```
 
 
-```{r renaming}
-
-
-
-```
-
-
 ```{r warning=FALSE}
 
 data$Years.of.experience.in.pediatric.dentistry <-  data$Years.of.experience.in.pediatric.dentistry %>% 
@@ -364,7 +357,6 @@ tbl_exp <- data %>%
 
 ```{r}
 library(userfriendlyscience)
-a = multiResponse(mtcars, c('vs', 'am'))
 
 library(questionr)
 ```
